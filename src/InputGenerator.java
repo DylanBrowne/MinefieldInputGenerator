@@ -4,71 +4,77 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.Scanner;
 
+/**
+ * Generates random Minesweeper input files for testing.
+ */
 public class InputGenerator {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         Random random = new Random();
 
-        System.out.print("Number of rows: ");
+        System.out.print("Number of minefields: ");
+        int fieldCount = scanner.nextInt();
+
+        System.out.print("Rows per field: ");
         int rows = scanner.nextInt();
 
-        System.out.print("Number of columns: ");
+        System.out.print("Columns per field: ");
         int columns = scanner.nextInt();
 
-        System.out.print("Percentage of mines (0-100): ");
+        System.out.print("Mine percentage (0-100): ");
         double minePercentage = scanner.nextDouble();
 
-        scanner.nextLine(); // Consume the leftover newline
-
-        System.out.print("Output filename: ");
-        String filename = scanner.nextLine();
-
-        if (rows < 1 || columns < 1
-                || minePercentage < 0
-                || minePercentage > 100) {
+        if (fieldCount < 1 || rows < 1 || columns < 1
+                || minePercentage < 0 || minePercentage > 100) {
             System.out.println("Invalid input.");
             scanner.close();
             return;
         }
 
-        char[][] minefield = new char[rows][columns];
+        try (PrintWriter writer = new PrintWriter("minefields.txt")) {
 
-        int totalCells = rows * columns;
-        int numberOfMines =
-                (int) Math.round(totalCells * minePercentage / 100.0);
+            for (int field = 0; field < fieldCount; field++) {
+                writer.println(rows + " " + columns);
 
-        // Initialize every cell as empty.
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < columns; column++) {
-                minefield[row][column] = '.';
+                char[][] minefield = new char[rows][columns];
+
+                int totalCells = rows * columns;
+                int mines = (int) Math.round(
+                        totalCells * minePercentage / 100.0);
+
+                // Initialize every cell as empty.
+                for (int r = 0; r < rows; r++) {
+                    for (int c = 0; c < columns; c++) {
+                        minefield[r][c] = '.';
+                    }
+                }
+
+                // Place mines randomly without duplicates.
+                int placed = 0;
+                while (placed < mines) {
+                    int r = random.nextInt(rows);
+                    int c = random.nextInt(columns);
+
+                    if (minefield[r][c] != '*') {
+                        minefield[r][c] = '*';
+                        placed++;
+                    }
+                }
+
+                // Write each row.
+                for (int r = 0; r < rows; r++) {
+                    writer.println(new String(minefield[r]));
+                }
             }
-        }
 
-        // Place mines in randomly selected empty cells.
-        int minesPlaced = 0;
+            // Signal the end of input for Minesweeper.
+            writer.println("0 0");
 
-        while (minesPlaced < numberOfMines) {
-            int row = random.nextInt(rows);
-            int column = random.nextInt(columns);
+            System.out.println("Generated minefields.txt successfully.");
 
-            if (minefield[row][column] != '*') {
-                minefield[row][column] = '*';
-                minesPlaced++;
-            }
-        }
-
-        // Write the minefield to a file.
-        try (PrintWriter writer = new PrintWriter(filename)) {
-            writer.println(rows + " " + columns);
-
-            for (int row = 0; row < rows; row++) {
-                writer.println(new String(minefield[row]));
-            }
-
-            System.out.println("Minefield saved to " + filename);
         } catch (IOException e) {
-            System.out.println("Error writing file: " + e.getMessage());
+            System.out.println("Could not write file: " + e.getMessage());
         }
 
         scanner.close();
